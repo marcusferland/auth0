@@ -20,10 +20,10 @@ var jwt = require('jsonwebtoken');
 var Schema = mongoose.Schema;
 var model = module.exports;
 
-model.accessTokenLifetime = 20;
+model.accessTokenLifetime = 900; // 15 minutes
 
 // JWT secret key
-var secretKey = 'sample secret key';
+var secretKey = 'secret';
 
 // Mongoose schemas
 
@@ -32,13 +32,13 @@ var OAuthRefreshTokenSchema = new Schema({
   clientId: { type: String },
   userId: { type: String },
   expires: { type: Date }
-});
+}, { collection: 'OAuthRefreshToken' });
 
 var OAuthClientSchema = new Schema({
   clientId: { type: String },
   clientSecret: { type: String },
   redirectUri: { type: String }
-});
+}, { collection: 'OAuthClient' });
 
 var OAuthUserSchema = new Schema({
   username: { type: String },
@@ -46,7 +46,7 @@ var OAuthUserSchema = new Schema({
   firstname: { type: String },
   lastname: { type: String },
   email: { type: String, default: '' }
-});
+}, { collection: 'OAuthUser' });
 
 mongoose.model('OAuthRefreshToken', OAuthRefreshTokenSchema);
 mongoose.model('OAuthClient', OAuthClientSchema);
@@ -63,7 +63,7 @@ model.getAccessToken = function (bearerToken, callback) {
   console.log('in getAccessToken (bearerToken: ' + bearerToken + ')');
 
   try {
-    var decoded = jwt.verify(bearerToken, secretKey, { 
+    var decoded = jwt.verify(bearerToken, secretKey, {
         ignoreExpiration: true //handled by OAuth2 server implementation
     });
     callback(null, {
@@ -72,19 +72,19 @@ model.getAccessToken = function (bearerToken, callback) {
       userId: decoded.user,
       expires: new Date(decoded.exp * 1000)
     });
-  } catch(e) {    
+  } catch(e) {
     callback(e);
   }
 };
 
 model.saveAccessToken = function (token, clientId, expires, userId, callback) {
-  console.log('in saveAccessToken (token: ' + token + 
-              ', clientId: ' + clientId + ', userId: ' + userId.id + 
+  console.log('in saveAccessToken (token: ' + token +
+              ', clientId: ' + clientId + ', userId: ' + userId.id +
               ', expires: ' + expires + ')');
 
   //No need to store JWT tokens.
   console.log(jwt.decode(token, secretKey));
-  
+
   callback(null);
 };
 
@@ -95,7 +95,7 @@ model.generateToken = function(type, req, callback) {
     callback(null, null);
     return;
   }
-  
+
   //Use JWT for access tokens
   var token = jwt.sign({
     user: req.user.id
@@ -103,12 +103,12 @@ model.generateToken = function(type, req, callback) {
     expiresIn: model.accessTokenLifetime,
     subject: req.client.clientId
   });
-  
+
   callback(null, token);
 }
 
 model.saveRefreshToken = function (token, clientId, expires, userId, callback) {
-  console.log('in saveRefreshToken (token: ' + token + 
+  console.log('in saveRefreshToken (token: ' + token +
               ', clientId: ' + clientId +
               ', userId: ' + userId.id + ', expires: ' + expires + ')');
 
@@ -129,19 +129,19 @@ model.getRefreshToken = function (refreshToken, callback) {
 };
 
 model.getClient = function (clientId, clientSecret, callback) {
-  console.log('in getClient (clientId: ' + clientId + 
+  console.log('in getClient (clientId: ' + clientId +
               ', clientSecret: ' + clientSecret + ')');
   if (clientSecret === null) {
     return OAuthClientsModel.findOne({ clientId: clientId }, callback);
   }
-  OAuthClientsModel.findOne({ 
-    clientId: clientId, 
-    clientSecret: clientSecret 
+  OAuthClientsModel.findOne({
+    clientId: clientId,
+    clientSecret: clientSecret
   }, callback);
 };
 
 model.grantTypeAllowed = function (clientId, grantType, callback) {
-  console.log('in grantTypeAllowed (clientId: ' + clientId + 
+  console.log('in grantTypeAllowed (clientId: ' + clientId +
               ', grantType: ' + grantType + ')');
 
   // Authorize all clients to use all grants.
@@ -149,10 +149,10 @@ model.grantTypeAllowed = function (clientId, grantType, callback) {
 };
 
 model.getUser = function (username, password, callback) {
-  console.log('in getUser (username: ' + username + 
+  console.log('in getUser (username: ' + username +
               ', password: ' + password + ')');
 
-  OAuthUsersModel.findOne({ username: username, password: password }, 
+  OAuthUsersModel.findOne({ username: username, password: password },
     function(err, user) {
         if(err) return callback(err);
         console.log('User id: ' + user._id);
@@ -160,7 +160,3 @@ model.getUser = function (username, password, callback) {
       }
   );
 };
-
-
-
-
