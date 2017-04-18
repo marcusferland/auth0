@@ -1,46 +1,61 @@
-var express = require('express')
-var bodyParser = require('body-parser')
-var oauthserver = require('oauth2-server')
-var mongoose = require('mongoose')
-var model = require('./model')
+const cluster = require('cluster')
 
-var mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/test'
+if (cluster.isMaster) {
 
-mongoose.connect(mongoUrl, (err, res) => {
-  if (err) {
-    console.log('ERROR connecting to: ' + mongoUrl + '. ' + err)
-  } else {
-    console.log('Succeeded connecting to: ' + mongoUrl)
-  }
-})
+  const numCPUs = require('os').cpus().length
+  console.log(`Master cluster setting up ${numCPUs} workers...`)
 
-var app = express();
+  for (var i = 0; i < numCPUs; i++) cluster.fork()
 
-app.use(bodyParser.urlencoded({ extended: true }))
+  cluster.on('online', worker => {
+    console.log(`Worker ${worker.process.pid} is online`)
+  })
 
-app.use(bodyParser.json())
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`Worker ${worker.process.pid} died with code: ${code}, and signal: ${signal}`)
+    console.log('Starting a new worker')
+    cluster.fork()
+  })
+}
+else {
+  const app = require('express')()
+  const bodyParser = require('body-parser')
+  const oauthserver = require('oauth2-server')
+  const mongoose = require('mongoose')
+  const cors = require('cors')
+  const model = require('./model')
+  const config = require('./config')
 
-app.oauth = oauthserver({
-  model: model,
-  grants: ['auth_code', 'password', 'refresh_token'],
-  debug: true,
-  accessTokenLifetime: model.accessTokenLifetime
-})
+  mongoose.connect(config.mongoUrl, (err, res) => {
+    if (err) console.log(`ERROR connecting to: ${config.mongoUrl}; ${err}`)
+  })
 
-// Handle token grant requests
-app.all('/oauth/token', app.oauth.grant())
+  app.use(bodyParser.urlencoded({ extended: true }))
+  app.use(bodyParser.json())
+  app.use(cors())
 
-app.get('/secret', app.oauth.authorise(), (req, res) => {
-  // Will require a valid access_token
-  res.send('Secret area')
-})
+  app.oauth = oauthserver({
+    model: model,
+    grants: ['auth_code', 'password', 'refresh_token'],
+    debug: true,
+    accessTokenLifetime: model.accessTokenLifetime
+  })
 
-app.get('/public', (req, res) => {
-  // Does not require an access_token
-  res.send('Public area')
-})
+  // Handle token grant requests
+  app.all('/oauth/token', app.oauth.grant())
 
-// Error handling
-app.use(app.oauth.errorHandler())
+  app.get('/secret', app.oauth.authorise(), (req, res) => {
+    // Will require a valid access_token
+    res.send('Secret area')
+  })
 
-app.listen(3004, () => console.log(`App running at http://localhost:3004`))
+  app.get('/public', (req, res) => {
+    // Does not require an access_token
+    res.send('Public area')
+  })
+
+  // Error handling
+  app.use(app.oauth.errorHandler())
+
+  app.listen(config.serverPort, () => console.log(`App running at http://localhost:${config.serverPort}`))
+}
