@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-var mongoose = require('mongoose');
-var jwt = require('jsonwebtoken');
+var mongoose = require('mongoose')
+var jwt = require('jsonwebtoken')
+const config = require('./config.json')
 
 var Schema = mongoose.Schema;
 var model = module.exports;
 
-model.accessTokenLifetime = 900; // 15 minutes
+model.accessTokenLifetime = config.tokenExpires; // 15 minutes
 
 // JWT secret key
-var secretKey = 'secret';
+var secretKey = config.jwtSecret;
 
 // Mongoose schemas
 
@@ -90,19 +91,30 @@ model.saveAccessToken = function (token, clientId, expires, userId, callback) {
 
 model.generateToken = function(type, req, callback) {
   //Use the default implementation for refresh tokens
-  console.log('generateToken: ' + type);
-  if(type === 'refreshToken') {
-    callback(null, null);
-    return;
+  console.log('generateToken: ' + type)
+  if (type === 'refreshToken') {
+    callback(null, null)
+    return
   }
+  const payload = {
+    user: {
+      id: req.user.id,
+      email: 'marcus.ferland@gmail.com',
+      firstname: 'Marc',
+      lastname: 'Ferland',
+      secret: 'HBIHMKL3LZLFO4SQNMRTARKCM44CIYJJ'
+    }
+  }
+  // console.log(req)
 
   //Use JWT for access tokens
-  var token = jwt.sign({
-    user: req.user.id
-  }, secretKey, {
-    expiresIn: model.accessTokenLifetime,
-    subject: req.client.clientId
-  });
+  var token = jwt.sign(
+    payload,
+    secretKey, {
+      expiresIn: model.accessTokenLifetime,
+      subject: req.client.clientId
+    }
+  )
 
   callback(null, token);
 }
@@ -154,9 +166,9 @@ model.getUser = function (username, password, callback) {
 
   OAuthUsersModel.findOne({ username: username, password: password },
     function(err, user) {
-        if(err) return callback(err);
-        console.log('User id: ' + user._id);
-        callback(null, user._id);
-      }
-  );
-};
+      if (err) return callback(err)
+      console.log('User id: ' + user._id)
+      callback(null, user._id)
+    }
+  )
+}
