@@ -1,0 +1,6 @@
+{
+  "mongoUrl": "mongodb://localhost:27017/test",
+  "jwtSecret": "rH!y+sZcK-_a TTZyDWjPGAJ q-RF&6-GW",
+  "tokenExpires": 900,
+  "serverPort": 3004
+}
