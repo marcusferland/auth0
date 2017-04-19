@@ -168,7 +168,7 @@ model.getUser = function (username, password, callback) {
     function(err, user) {
       if (err) return callback(err)
       console.log('User id: ' + user._id)
-      callback(null, user._id)
+      callback(null, user)
     }
   )
 }
