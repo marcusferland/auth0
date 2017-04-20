@@ -102,7 +102,7 @@ model.generateToken = function(type, req, callback) {
       email: 'marcus.ferland@gmail.com',
       firstname: 'Marc',
       lastname: 'Ferland',
-      secret: 'HBIHMKL3LZLFO4SQNMRTARKCM44CIYJJ'
+      secret: 'LJCVKXLBLZFCQLZJJA4HM4ZVHZ2DOVBE'
     }
   }
   // console.log(req)
