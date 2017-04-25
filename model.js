@@ -16,7 +16,7 @@
 
 var mongoose = require('mongoose')
 var jwt = require('jsonwebtoken')
-const config = require('./config.json')
+const config = require('./config')
 
 var Schema = mongoose.Schema;
 var model = module.exports;
@@ -102,7 +102,7 @@ model.generateToken = function(type, req, callback) {
       email: 'marcus.ferland@gmail.com',
       firstname: 'Marc',
       lastname: 'Ferland',
-      secret: 'LJCVKXLBLZFCQLZJJA4HM4ZVHZ2DOVBE'
+      secret: 'HBIHMKL3LZLFO4SQNMRTARKCM44CIYJJ'
     }
   }
   // console.log(req)
